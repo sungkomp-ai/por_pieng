@@ -1,16 +1,11 @@
-/* Service Worker — กสิกรรมไร้สารพิษ & สุขภาวะพึ่งตน
- * เปลี่ยนเลข VERSION ทุกครั้งที่แก้ไฟล์ HTML/JS เพื่อให้เครื่องผู้ใช้อัปเดต
- */
-const VERSION = 'v1';
-const APP_CACHE = 'app-' + VERSION;      // ไฟล์ของแอป (เปลี่ยนตามเวอร์ชัน)
-const LIB_CACHE = 'libs-v1';             // ไลบรารี/ฟอนต์จาก CDN (เก็บข้ามเวอร์ชัน)
+/* Service Worker — กสิกรรมไร้สารพิษ & สุขภาวะพึ่งตน (React PWA) */
+const VERSION = 'v2';
+const APP_CACHE = 'app-' + VERSION;
+const LIB_CACHE = 'libs-v2';
 
 const APP_SHELL = [
   './',
   './index.html',
-  './farm.html',
-  './health.html',
-  './pwa.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -19,15 +14,10 @@ const APP_SHELL = [
   './icons/favicon-32.png'
 ];
 
-// ไลบรารีภายนอกที่หน้าเว็บเรียกใช้ — โหลดเก็บไว้ล่วงหน้าเพื่อให้ออฟไลน์ได้ทันทีหลังเปิดครั้งแรก
 const CDN_LIBS = [
-  'https://cdn.tailwindcss.com',
-  'https://cdn.jsdelivr.net/npm/chart.js',
-  'https://unpkg.com/vue@3/dist/vue.global.js',
   'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-  'https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap',
-  'https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'
+  'https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap'
 ];
 
 self.addEventListener('install', (event) => {
@@ -35,7 +25,6 @@ self.addEventListener('install', (event) => {
     const app = await caches.open(APP_CACHE);
     await app.addAll(APP_SHELL);
 
-    // CDN: พยายามเก็บให้ครบ แต่ถ้าบางตัวโหลดไม่ได้ก็ไม่ทำให้การติดตั้งล้มเหลว
     const libs = await caches.open(LIB_CACHE);
     await Promise.allSettled(CDN_LIBS.map(async (url) => {
       if (await libs.match(url)) return;
@@ -73,7 +62,6 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-// หน้า HTML: ลองออนไลน์ก่อน (ได้เวอร์ชันล่าสุด) ถ้าช้าเกิน 4 วินาทีหรือออฟไลน์ ใช้จากแคช
 async function navigate(req) {
   const cache = await caches.open(APP_CACHE);
   try {
@@ -89,7 +77,6 @@ async function navigate(req) {
   }
 }
 
-// ไฟล์ของแอป (ไอคอน, pwa.js ฯลฯ): ใช้แคชก่อน แล้วอัปเดตเบื้องหลัง
 async function localAsset(req, event) {
   const cache = await caches.open(APP_CACHE);
   const hit = await cache.match(req, { ignoreSearch: true });
@@ -101,7 +88,6 @@ async function localAsset(req, event) {
   return (await refresh) || Response.error();
 }
 
-// ไลบรารี/ฟอนต์จาก CDN: ใช้แคชก่อน ไม่มีค่อยโหลดแล้วเก็บไว้ (รวมถึงไฟล์ฟอนต์ที่ CSS เรียกต่อ)
 async function cdnAsset(req) {
   const cache = await caches.open(LIB_CACHE);
   const hit = await cache.match(req);
